@@ -9,6 +9,7 @@
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
         android:ems="10"
+        android:maxLength="5"
         android:hint="@string/update_frequency"
         android:inputType="number" />
 
