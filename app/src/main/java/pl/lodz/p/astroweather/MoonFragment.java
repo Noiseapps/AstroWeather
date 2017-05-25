@@ -53,7 +53,7 @@ public class MoonFragment extends Fragment {
         AstroCalculator.MoonInfo moonInfo = astroCalculator.getMoonInfo();
         refreshTime.setText(Utils.formatAstroDateToString(astroCalculator.getDateTime()));
         riseTime.setText(Utils.formatAstroDateToStringTimeOnly(moonInfo.getMoonrise()));
-        setTime.setText(Utils.formatAstroDateToStringTimeOnly(moonInfo.getMoonrise()));
+        setTime.setText(Utils.formatAstroDateToStringTimeOnly(moonInfo.getMoonset()));
         newMoonDate.setText(Utils.formatAstroDateToStringDateOnly(moonInfo.getNextNewMoon()));
         fullMoonDate.setText(Utils.formatAstroDateToStringDateOnly(moonInfo.getNextFullMoon()));
 
