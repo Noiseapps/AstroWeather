@@ -34,14 +34,14 @@ public class SunFragment extends Fragment {
         civilTimeDawn = (TextView) content.findViewById(R.id.dawnTime);
         return content;
     }
-g
+
     public void update(AstroCalculator astroCalculator) {
         AstroCalculator.SunInfo sunInfo = astroCalculator.getSunInfo();
-        riseTime.setText(Utils.formatAstroDateToString(sunInfo.getSunrise()));
-        setTime.setText(Utils.formatAstroDateToString(sunInfo.getSunset()));
+        riseTime.setText(Utils.formatAstroDateToStringTimeOnly(sunInfo.getSunrise()));
+        setTime.setText(Utils.formatAstroDateToStringTimeOnly(sunInfo.getSunset()));
         riseAzimuth.setText(String.format(Locale.getDefault(), "%f deg", sunInfo.getAzimuthRise()));
         setAzimuth.setText(String.format(Locale.getDefault(), "%f deg", sunInfo.getAzimuthSet()));
-        civilTimeDusk.setText(Utils.formatAstroDateToString(sunInfo.getTwilightEvening()));
-        civilTimeDawn.setText(Utils.formatAstroDateToString(sunInfo.getTwilightMorning()));
+        civilTimeDusk.setText(Utils.formatAstroDateToStringTimeOnly(sunInfo.getTwilightEvening()));
+        civilTimeDawn.setText(Utils.formatAstroDateToStringTimeOnly(sunInfo.getTwilightMorning()));
     }
 }
