@@ -21,6 +21,7 @@ public class MoonFragment extends Fragment {
     private TextView fullMoonDate;
     private TextView moonPhase;
     private TextView moonAgeDays;
+    private TextView refreshTime;
 
     @Nullable
     @Override
@@ -36,6 +37,7 @@ public class MoonFragment extends Fragment {
         fullMoonDate = (TextView) view.findViewById(R.id.fullMoonDate);
         moonPhase = (TextView) view.findViewById(R.id.moonPhase);
         moonAgeDays = (TextView) view.findViewById(R.id.moonAgeDays);
+        refreshTime = (TextView) view.findViewById(R.id.refreshTime);
         super.onViewCreated(view, savedInstanceState);
     }
 
@@ -49,6 +51,7 @@ public class MoonFragment extends Fragment {
             return;
         }
         AstroCalculator.MoonInfo moonInfo = astroCalculator.getMoonInfo();
+        refreshTime.setText(Utils.formatAstroDateToString(astroCalculator.getDateTime()));
         riseTime.setText(Utils.formatAstroDateToStringTimeOnly(moonInfo.getMoonrise()));
         setTime.setText(Utils.formatAstroDateToStringTimeOnly(moonInfo.getMoonrise()));
         newMoonDate.setText(Utils.formatAstroDateToStringDateOnly(moonInfo.getNextNewMoon()));
@@ -56,6 +59,6 @@ public class MoonFragment extends Fragment {
 
         int illuminationPercentValue = (int) (moonInfo.getIllumination() * 100);
         moonPhase.setText(String.format(Locale.getDefault(), "%d %%", illuminationPercentValue));
-        moonAgeDays.setText(String.format(Locale.getDefault(), "%d dni", (int) moonInfo.getAge()));
+        moonAgeDays.setText(String.format(Locale.getDefault(), "%.1f dni", moonInfo.getAge()));
     }
 }

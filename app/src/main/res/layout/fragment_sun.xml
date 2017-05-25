@@ -13,11 +13,41 @@
         android:padding="8dp"
         tools:context="pl.lodz.p.astroweather.SunFragment">
 
-        <TextView
-            android:layout_width="wrap_content"
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/sun"
-            android:textAppearance="?android:attr/textAppearanceLarge" />
+            android:layout_margin="8dp"
+            android:orientation="horizontal" >
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/sun"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:text="@string/refresh_time" />
+
+                <TextView
+                    android:id="@+id/refreshTime"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:gravity="end" />
+            </LinearLayout>
+        </LinearLayout>
 
         <ScrollView
             android:layout_width="match_parent"

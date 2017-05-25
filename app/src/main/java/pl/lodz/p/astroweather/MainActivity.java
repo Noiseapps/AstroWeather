@@ -9,6 +9,7 @@ import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -30,6 +31,8 @@ public class MainActivity extends AppCompatActivity {
     public static final String KEY_LONGITUDE = "Longitude";
     public static final String KEY_LATITUDE = "Latitude";
     public static final String KEY_FREQUENCY = "Frequency";
+    public static final String KEY_SUN_FRAGMENT = "SunFragment";
+    public static final String KEY_MOON_FRAGMENT = "MoonFragment";
 
     private double userLongitude = -1001;
     private double userLatitude = -1001;
@@ -45,6 +48,9 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             astroDateTime = Utils.getCurrentAstroDateTime();
+            if(astroCalculator != null) {
+                astroCalculator.setDateTime(astroDateTime);
+            }
             MainActivity.this.timeValue.setText(Utils.formatAstroDateToString(astroDateTime));
             if (tickerHandler != null) {
                 tickerHandler.postDelayed(this, SECOND_DELAY);
@@ -75,8 +81,8 @@ public class MainActivity extends AppCompatActivity {
             userLatitude = savedInstanceState.getDouble(KEY_LATITUDE, -1001);
             userLongitude = savedInstanceState.getDouble(KEY_LONGITUDE, -1001);
             updateFrequency = savedInstanceState.getInt(KEY_FREQUENCY, -1);
-            moonFragment = (MoonFragment) getSupportFragmentManager().getFragment(savedInstanceState, "MoonFragment");
-            sunFragment =  (SunFragment) getSupportFragmentManager().getFragment(savedInstanceState, "SunFragment");
+            moonFragment = (MoonFragment) getSupportFragmentManager().getFragment(savedInstanceState, KEY_MOON_FRAGMENT);
+            sunFragment =  (SunFragment) getSupportFragmentManager().getFragment(savedInstanceState, KEY_SUN_FRAGMENT);
         } else {
             userLatitude = -1001;
             userLongitude = -1001;
@@ -114,8 +120,8 @@ public class MainActivity extends AppCompatActivity {
         outState.putDouble(KEY_LATITUDE, userLatitude);
         outState.putDouble(KEY_LONGITUDE, userLongitude);
         outState.putInt(KEY_FREQUENCY, updateFrequency);
-        getSupportFragmentManager().putFragment(outState, "MoonFragment", moonFragment);
-        getSupportFragmentManager().putFragment(outState, "SunFragment", sunFragment);
+        getSupportFragmentManager().putFragment(outState, KEY_MOON_FRAGMENT, moonFragment);
+        getSupportFragmentManager().putFragment(outState, KEY_SUN_FRAGMENT, sunFragment);
         super.onSaveInstanceState(outState);
     }
 
@@ -174,8 +180,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void setLocation() {
         View dialogBody = LayoutInflater.from(this).inflate(R.layout.dialog_coordinates, null, false);
-        final EditText longitudeInput = (EditText) dialogBody.findViewById(R.id.longitude);
         final EditText latitudeInput = (EditText) dialogBody.findViewById(R.id.latitude);
+        final EditText longitudeInput = (EditText) dialogBody.findViewById(R.id.longitude);
+
+        longitudeInput.setInputType(InputType.TYPE_NUMBER_FLAG_SIGNED | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_CLASS_NUMBER);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this).
                 setTitle(R.string.setUserLocation).
@@ -193,29 +201,39 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(View view) {
                         boolean isValid = true;
+
                         double longitude = 0;
                         double latitude = 0;
+
                         if(!longitudeInput.getText().toString().isEmpty()) {
-                            longitude = Double.parseDouble(longitudeInput.getText().toString());
+                            try {
+                                longitude = Double.parseDouble(longitudeInput.getText().toString());
+                                if(Math.abs(longitude) > 180) {
+                                    longitudeInput.setError(getString(R.string.invalidLongitudeValue));
+                                    isValid = false;
+                                }
+                            } catch (Exception e) {
+                                longitudeInput.setError(getString(R.string.field_invalid));
+                                isValid = false;
+                            }
                         } else {
                             longitudeInput.setError(getString(R.string.field_required));
                             isValid = false;
                         }
 
                         if(!latitudeInput.getText().toString().isEmpty()) {
-                            latitude = Double.parseDouble(latitudeInput.getText().toString());
+                            try {
+                                latitude = Double.parseDouble(latitudeInput.getText().toString());
+                                if(latitude < 0 || latitude > 90) {
+                                    latitudeInput.setError(getString(R.string.invalidLatitudeValue));
+                                    isValid = false;
+                                }
+                            } catch (Exception e) {
+                                latitudeInput.setError(getString(R.string.field_invalid));
+                                isValid = false;
+                            }
                         } else {
                             latitudeInput.setError(getString(R.string.field_required));
-                            isValid = false;
-                        }
-
-                        if(Math.abs(longitude) > 180) {
-                            longitudeInput.setError(getString(R.string.invalidLongitudeValue));
-                            isValid = false;
-                        }
-
-                        if(latitude < 0 || latitude > 90) {
-                            latitudeInput.setError(getString(R.string.invalidLatitudeValue));
                             isValid = false;
                         }
 
@@ -261,8 +279,12 @@ public class MainActivity extends AppCompatActivity {
                     public void onClick(View view) {
                         if(!frequencyInput.getText().toString().isEmpty()) {
                             int frequencyMinutes = Integer.parseInt(frequencyInput.getText().toString());
-                            setUpdateFrequency(frequencyMinutes);
-                            alert.dismiss();
+                            if(frequencyMinutes > 0) {
+                                setUpdateFrequency(frequencyMinutes);
+                                alert.dismiss();
+                            } else {
+                                frequencyInput.setError(getString(R.string.field_invalid));
+                            }
                         } else {
                             frequencyInput.setError(getString(R.string.field_required));
                         }

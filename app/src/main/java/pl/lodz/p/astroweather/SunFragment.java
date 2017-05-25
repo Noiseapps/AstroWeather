@@ -1,6 +1,5 @@
 package pl.lodz.p.astroweather;
 
-import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -20,6 +19,7 @@ public class SunFragment extends Fragment {
     private TextView setAzimuth;
     private TextView civilTimeDusk;
     private TextView civilTimeDawn;
+    private TextView refreshTime;
 
     @Nullable
     @Override
@@ -35,14 +35,16 @@ public class SunFragment extends Fragment {
         setAzimuth = (TextView) view.findViewById(R.id.setAzimuth);
         civilTimeDusk = (TextView) view.findViewById(R.id.duskTime);
         civilTimeDawn = (TextView) view.findViewById(R.id.dawnTime);
+        refreshTime = (TextView) view.findViewById(R.id.refreshTime);
         super.onViewCreated(view, savedInstanceState);
     }
 
     public void update(AstroCalculator astroCalculator) {
-        if(riseTime == null) {
+        if (riseTime == null) {
             return;
         }
         AstroCalculator.SunInfo sunInfo = astroCalculator.getSunInfo();
+        refreshTime.setText(Utils.formatAstroDateToString(astroCalculator.getDateTime()));
         riseTime.setText(Utils.formatAstroDateToStringTimeOnly(sunInfo.getSunrise()));
         setTime.setText(Utils.formatAstroDateToStringTimeOnly(sunInfo.getSunset()));
         riseAzimuth.setText(String.format(Locale.getDefault(), "%f deg", sunInfo.getAzimuthRise()));

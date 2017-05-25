@@ -25,9 +25,12 @@
     <string name="setUserLocation">Wpisz pozycję użytkownika</string>
     <string name="save">Zapisz</string>
     <string name="cancel">Anuluj</string>
-    <string name="invalidLongitudeValue">Długość musi zawierać się w przedziale &lt;-180,180&gt;</string>
-    <string name="invalidLatitudeValue">Szerokość musi zawierać się w przedziale &lt;0,90&gt;</string>
+    <string name="invalidLongitudeValue">Długość geograficzna musi zawierać się w przedziale &lt;-180,180&gt;</string>
+    <string name="invalidLatitudeValue">Szerokość geograficzna musi zawierać się w przedziale &lt;0,90&gt;</string>
+    <string name="invalidUpdateFrequency">Częstotliwość odświeżania musi być większa od 0</string>
     <string name="setUpdateFrequency">Podaj, co ile minut mają się odświeżać widoki</string>
     <string name="not_set">Jeszcze nie ustawiono</string>
     <string name="field_required">To pole jest wymagane</string>
+    <string name="refresh_time">Aktualizacja:</string>
+    <string name="field_invalid">Wpisana wartość jest niepoprawna</string>
 </resources>

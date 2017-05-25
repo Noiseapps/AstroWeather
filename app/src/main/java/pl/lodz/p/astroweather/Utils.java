@@ -7,6 +7,8 @@ import java.util.Locale;
 
 public class Utils {
 
+    public static final int MILLIS_IN_AN_HOUR = 3600000;
+
     /**
      * Converts AstroDateTime object to format 'yyyy-mm-dd HH:MM:SS'
      */
@@ -55,7 +57,7 @@ public class Utils {
                 calendar.get(Calendar.HOUR_OF_DAY),
                 calendar.get(Calendar.MINUTE),
                 calendar.get(Calendar.SECOND),
-                calendar.getTimeZone().getRawOffset(),
+                calendar.getTimeZone().getRawOffset() / MILLIS_IN_AN_HOUR,
                 calendar.getTimeZone().useDaylightTime());
     }
 }
