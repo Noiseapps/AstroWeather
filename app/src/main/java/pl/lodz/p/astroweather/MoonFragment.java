@@ -25,20 +25,17 @@ public class MoonFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        this.setRetainInstance(true);
-        View content = inflater.inflate(R.layout.fragment_moon, container, false);
-        riseTime = (TextView) content.findViewById(R.id.riseTime);
-        setTime = (TextView) content.findViewById(R.id.setTime);
-        newMoonDate = (TextView) content.findViewById(R.id.newMoonDate);
-        fullMoonDate = (TextView) content.findViewById(R.id.fullMoonDate);
-        moonPhase = (TextView) content.findViewById(R.id.moonPhase);
-        moonAgeDays = (TextView) content.findViewById(R.id.moonAgeDays);
-
-        return content;
+        return inflater.inflate(R.layout.fragment_moon, container, false);
     }
 
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        riseTime = (TextView) view.findViewById(R.id.riseTime);
+        setTime = (TextView) view.findViewById(R.id.setTime);
+        newMoonDate = (TextView) view.findViewById(R.id.newMoonDate);
+        fullMoonDate = (TextView) view.findViewById(R.id.fullMoonDate);
+        moonPhase = (TextView) view.findViewById(R.id.moonPhase);
+        moonAgeDays = (TextView) view.findViewById(R.id.moonAgeDays);
         super.onViewCreated(view, savedInstanceState);
     }
 
@@ -48,6 +45,9 @@ public class MoonFragment extends Fragment {
     }
 
     public void update(AstroCalculator astroCalculator) {
+        if(riseTime == null) {
+            return;
+        }
         AstroCalculator.MoonInfo moonInfo = astroCalculator.getMoonInfo();
         riseTime.setText(Utils.formatAstroDateToStringTimeOnly(moonInfo.getMoonrise()));
         setTime.setText(Utils.formatAstroDateToStringTimeOnly(moonInfo.getMoonrise()));

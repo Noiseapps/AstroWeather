@@ -26,6 +26,7 @@ import java.util.Locale;
 public class MainActivity extends AppCompatActivity {
 
     public static final int SECOND_DELAY = 1000;
+    public static final int MINUTE_DELAY = 60 * SECOND_DELAY;
     public static final String KEY_LONGITUDE = "Longitude";
     public static final String KEY_LATITUDE = "Latitude";
     public static final String KEY_FREQUENCY = "Frequency";
@@ -43,11 +44,19 @@ public class MainActivity extends AppCompatActivity {
     private Runnable timeTicker = new Runnable() {
         @Override
         public void run() {
-            Log.d("Ticker", "tick");
             astroDateTime = Utils.getCurrentAstroDateTime();
             MainActivity.this.timeValue.setText(Utils.formatAstroDateToString(astroDateTime));
             if (tickerHandler != null) {
                 tickerHandler.postDelayed(this, SECOND_DELAY);
+            }
+        }
+    };
+    private Runnable dataRefreshTicker = new Runnable() {
+        @Override
+        public void run() {
+            updateFragments();
+            if (tickerHandler != null) {
+                tickerHandler.postDelayed(this, updateFrequency * MINUTE_DELAY);
             }
         }
     };
@@ -66,6 +75,8 @@ public class MainActivity extends AppCompatActivity {
             userLatitude = savedInstanceState.getDouble(KEY_LATITUDE, -1001);
             userLongitude = savedInstanceState.getDouble(KEY_LONGITUDE, -1001);
             updateFrequency = savedInstanceState.getInt(KEY_FREQUENCY, -1);
+            moonFragment = (MoonFragment) getSupportFragmentManager().getFragment(savedInstanceState, "MoonFragment");
+            sunFragment =  (SunFragment) getSupportFragmentManager().getFragment(savedInstanceState, "SunFragment");
         } else {
             userLatitude = -1001;
             userLongitude = -1001;
@@ -73,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
 
         timeValue = (TextView) findViewById(R.id.timeValue);
         userLocation = (TextView) findViewById(R.id.locationValue);
+        userLocation.setText(R.string.not_set);
 
         sunContainer = (FrameLayout) findViewById(R.id.sunFragmentContainer);
         moonContainer = (FrameLayout) findViewById(R.id.moonFragmentContainer);
@@ -86,38 +98,54 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        outState.putDouble(KEY_LATITUDE, userLatitude);
-        outState.putDouble(KEY_LONGITUDE, userLongitude);
-        outState.putInt(KEY_FREQUENCY, updateFrequency);
-        super.onSaveInstanceState(outState);
-    }
-
-    @Override
     protected void onStart() {
         super.onStart();
         this.setUserLocation(userLatitude, userLongitude);
     }
 
+    @Override
+    protected void onDestroy() {
+        tickerHandler.removeCallbacksAndMessages(null);
+        super.onDestroy();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putDouble(KEY_LATITUDE, userLatitude);
+        outState.putDouble(KEY_LONGITUDE, userLongitude);
+        outState.putInt(KEY_FREQUENCY, updateFrequency);
+        getSupportFragmentManager().putFragment(outState, "MoonFragment", moonFragment);
+        getSupportFragmentManager().putFragment(outState, "SunFragment", sunFragment);
+        super.onSaveInstanceState(outState);
+    }
+
     public void setUserLocation(double latitude, double longitude) {
+        tickerHandler.removeCallbacks(dataRefreshTicker);
         userLatitude = latitude;
         userLongitude = longitude;
-        astroCalculator = new AstroCalculator(astroDateTime, new AstroCalculator.Location(latitude, longitude));
-        userLocation.setText(String.format(Locale.getDefault(), "Szer.: %f, Dł.: %f", latitude, longitude));
+        if(latitude >= 0 && latitude <= 90 && Math.abs(longitude) <= 180) {
+            astroCalculator = new AstroCalculator(astroDateTime, new AstroCalculator.Location(latitude, longitude));
+            userLocation.setText(String.format(Locale.getDefault(), "Szer.: %f, \nDł.: %f", latitude, longitude));
+        }
         updateFragments();
     }
 
     public void setUpdateFrequency(int updateFrequencyMinutes) {
-//        todo alarm
+        tickerHandler.removeCallbacks(dataRefreshTicker);
+        updateFrequency = updateFrequencyMinutes;
+        tickerHandler.post(dataRefreshTicker);
+        updateFragments();
     }
 
     public void updateFragments() {
         if(userLatitude < 0 || userLongitude < -180) {
+            tickerHandler.removeCallbacks(dataRefreshTicker);
             setLocation();
             return;
         }
 
         if(updateFrequency < 0) {
+            tickerHandler.removeCallbacks(dataRefreshTicker);
             updateFrequency();
             return;
         }
@@ -152,6 +180,7 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this).
                 setTitle(R.string.setUserLocation).
                 setPositiveButton(R.string.save, null).
+                setCancelable(false).
                 setNegativeButton(R.string.cancel, null).
                 setView(dialogBody);
         final AlertDialog alert = builder.create();
@@ -163,10 +192,23 @@ public class MainActivity extends AppCompatActivity {
                 alert.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        double longitude = Double.parseDouble(longitudeInput.getText().toString());
-                        double latitude = Double.parseDouble(latitudeInput.getText().toString());
-
                         boolean isValid = true;
+                        double longitude = 0;
+                        double latitude = 0;
+                        if(!longitudeInput.getText().toString().isEmpty()) {
+                            longitude = Double.parseDouble(longitudeInput.getText().toString());
+                        } else {
+                            longitudeInput.setError(getString(R.string.field_required));
+                            isValid = false;
+                        }
+
+                        if(!latitudeInput.getText().toString().isEmpty()) {
+                            latitude = Double.parseDouble(latitudeInput.getText().toString());
+                        } else {
+                            latitudeInput.setError(getString(R.string.field_required));
+                            isValid = false;
+                        }
+
                         if(Math.abs(longitude) > 180) {
                             longitudeInput.setError(getString(R.string.invalidLongitudeValue));
                             isValid = false;
@@ -204,6 +246,7 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this).
                 setTitle(R.string.update_frequency).
                 setMessage(R.string.setUpdateFrequency).
+                setCancelable(false).
                 setPositiveButton(R.string.save, null).
                 setNegativeButton(R.string.cancel, null).
                 setView(dialogBody);
@@ -216,9 +259,13 @@ public class MainActivity extends AppCompatActivity {
                 alert.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        int frequencyMinutes = Integer.parseInt(frequencyInput.getText().toString());
-                        setUpdateFrequency(frequencyMinutes);
-                        alert.dismiss();
+                        if(!frequencyInput.getText().toString().isEmpty()) {
+                            int frequencyMinutes = Integer.parseInt(frequencyInput.getText().toString());
+                            setUpdateFrequency(frequencyMinutes);
+                            alert.dismiss();
+                        } else {
+                            frequencyInput.setError(getString(R.string.field_required));
+                        }
                     }
                 });
 
@@ -235,8 +282,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void configureFragments() {
-        sunFragment = new SunFragment();
-        moonFragment = new MoonFragment();
+        if(sunFragment == null ) {
+            sunFragment = new SunFragment();
+        }
+        if(moonFragment == null) {
+            moonFragment = new MoonFragment();
+        }
 
         if (sunContainer != null && moonContainer != null) {
 //            widok tabletu

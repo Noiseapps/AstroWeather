@@ -24,18 +24,24 @@ public class SunFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        this.setRetainInstance(true);
-        View content = inflater.inflate(R.layout.fragment_sun, container, false);
-        riseTime = (TextView) content.findViewById(R.id.riseTime);
-        riseAzimuth = (TextView) content.findViewById(R.id.riseAzimuth);
-        setTime = (TextView) content.findViewById(R.id.setTime);
-        setAzimuth = (TextView) content.findViewById(R.id.setAzimuth);
-        civilTimeDusk = (TextView) content.findViewById(R.id.duskTime);
-        civilTimeDawn = (TextView) content.findViewById(R.id.dawnTime);
-        return content;
+        return inflater.inflate(R.layout.fragment_sun, container, false);
+    }
+
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        riseTime = (TextView) view.findViewById(R.id.riseTime);
+        riseAzimuth = (TextView) view.findViewById(R.id.riseAzimuth);
+        setTime = (TextView) view.findViewById(R.id.setTime);
+        setAzimuth = (TextView) view.findViewById(R.id.setAzimuth);
+        civilTimeDusk = (TextView) view.findViewById(R.id.duskTime);
+        civilTimeDawn = (TextView) view.findViewById(R.id.dawnTime);
+        super.onViewCreated(view, savedInstanceState);
     }
 
     public void update(AstroCalculator astroCalculator) {
+        if(riseTime == null) {
+            return;
+        }
         AstroCalculator.SunInfo sunInfo = astroCalculator.getSunInfo();
         riseTime.setText(Utils.formatAstroDateToStringTimeOnly(sunInfo.getSunrise()));
         setTime.setText(Utils.formatAstroDateToStringTimeOnly(sunInfo.getSunset()));
