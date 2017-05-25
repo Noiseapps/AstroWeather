@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">AstroWeather</string>
+
+    <string name="current_time">Aktualny czas:</string>
+    <string name="user_location">Lokalizacja użytkownika:</string>
+    <string name="time">Czas</string>
+    <string name="rise">Wschód</string>
+    <string name="sun">Słońce</string>
+    <string name="azimuth">Azymut</string>
+    <string name="set">Zachód</string>
+    <string name="civil_times">Zmierz i świt cywilny</string>
+    <string name="dawn">Świt</string>
+    <string name="dusk">Zmierzch</string>
+</resources>
