@@ -4,6 +4,7 @@ import com.astrocalculator.AstroDateTime;
 
 import java.util.Calendar;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -68,7 +69,9 @@ public class Utils {
     public static YahooWeatherApi getWeatherApi() {
         HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
         loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
-        OkHttpClient client = new OkHttpClient.Builder().addInterceptor(loggingInterceptor).build();
+        OkHttpClient client = new OkHttpClient.Builder().
+                readTimeout(5, TimeUnit.SECONDS).
+                addInterceptor(loggingInterceptor).build();
         return new Retrofit.Builder().
                 client(client).
                 baseUrl("https://query.yahooapis.com/v1/public/").

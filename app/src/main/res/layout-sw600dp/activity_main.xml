@@ -15,8 +15,9 @@
             android:id="@+id/currentDataUnavailable"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="end"
+            android:gravity="center"
             android:text="@string/failed_to_read_current_data"
+            android:textAppearance="?android:attr/textAppearanceLarge"
             android:textColor="@color/colorWarning"
             android:visibility="gone" />
     </LinearLayout>

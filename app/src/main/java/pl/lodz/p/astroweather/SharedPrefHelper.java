@@ -22,7 +22,7 @@ public class SharedPrefHelper {
     }
 
     public int getRefreshTime() {
-        return preferences.getInt("refresh", 0);
+        return preferences.getInt("refresh", -1);
     }
 
     public void setRefreshTime(int refreshTime) {

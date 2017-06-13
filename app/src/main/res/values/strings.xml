@@ -52,4 +52,5 @@
     <string name="failed_to_read_current_data">Nie udało się pobrać aktualnych danych. Wyświetlone dane mogą być nieaktualne.</string>
     <string name="weatherForecast">Prognoza pogody</string>
     <string name="current_weather">Pogoda:</string>
+    <string name="no_cached_data">Brak dostępnych danych pogodowych. Sprawdź połączenie z internetem i spróbuj ponownie</string>
 </resources>

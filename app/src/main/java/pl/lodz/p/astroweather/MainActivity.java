@@ -23,6 +23,7 @@ import android.widget.Toast;
 import com.astrocalculator.AstroCalculator;
 import com.astrocalculator.AstroDateTime;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -30,6 +31,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.util.Locale;
 
 import io.realm.RealmResults;
@@ -370,6 +372,9 @@ public class MainActivity extends AppCompatActivity {
     private void updateFrequency() {
         View dialogBody = LayoutInflater.from(this).inflate(R.layout.dialog_update_frequency, null, false);
         final EditText frequencyInput = (EditText) dialogBody.findViewById(R.id.frequencyUpdate);
+        if (updateFrequency > 0) {
+            frequencyInput.setText(String.format(Locale.getDefault(), "%d", updateFrequency));
+        }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this).
                 setTitle(R.string.update_frequency).
@@ -390,8 +395,9 @@ public class MainActivity extends AppCompatActivity {
                         if (!frequencyInput.getText().toString().isEmpty()) {
                             int frequencyMinutes = Integer.parseInt(frequencyInput.getText().toString());
                             if (frequencyMinutes > 0) {
-                                setUpdateFrequency(frequencyMinutes);
                                 alert.dismiss();
+                                new SharedPrefHelper(MainActivity.this).setRefreshTime(frequencyMinutes);
+                                setUpdateFrequency(frequencyMinutes);
                             } else {
                                 frequencyInput.setError(getString(R.string.field_invalid));
                             }
@@ -434,9 +440,13 @@ public class MainActivity extends AppCompatActivity {
             public void onFailure(Call<BaseResponse<WeatherResponse>> call, Throwable t) {
                 isReadingData = false;
                 dialog.dismiss();
-                final Query weatherResponse = readFromFile();
+                final Query<WeatherResponse> weatherResponse = readFromFile();
                 if (weatherResponse != null) {
+                    currentDataUnavailable.setText(R.string.failed_to_read_current_data);
                     updateWeatherFragments(weatherResponse, false);
+                } else {
+                    currentDataUnavailable.setVisibility(View.VISIBLE);
+                    currentDataUnavailable.setText(R.string.no_cached_data);
                 }
             }
         });
@@ -454,7 +464,7 @@ public class MainActivity extends AppCompatActivity {
         updateWeatherFragments(response, true);
     }
 
-    private Query readFromFile() {
+    private Query<WeatherResponse> readFromFile() {
         FileInputStream inputStream = null;
         try {
             final File file = new File(getFilesDir(), selectedPlace.getId());
@@ -466,7 +476,9 @@ public class MainActivity extends AppCompatActivity {
                 sb.append(line).append("\n");
             }
             reader.close();
-            return new Gson().fromJson(sb.toString(), Query.class);
+            final Type type = new TypeToken<Query<WeatherResponse>>() {
+            }.getType();
+            return new Gson().fromJson(sb.toString(), type);
         } catch (Exception ex) {
             return null;
         } finally {
