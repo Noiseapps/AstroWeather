@@ -1,4 +1,4 @@
-package pl.lodz.p.astroweather;
+package pl.lodz.p.astroweather.fragments;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -13,6 +13,9 @@ import com.astrocalculator.AstroCalculator;
 
 import java.util.Locale;
 
+import pl.lodz.p.astroweather.R;
+import pl.lodz.p.astroweather.Utils;
+
 public class MoonFragment extends Fragment {
 
     private TextView riseTime;
@@ -22,6 +25,7 @@ public class MoonFragment extends Fragment {
     private TextView moonPhase;
     private TextView moonAgeDays;
     private TextView refreshTime;
+    private AstroCalculator astroCalculator;
 
     @Nullable
     @Override
@@ -39,6 +43,9 @@ public class MoonFragment extends Fragment {
         moonAgeDays = (TextView) view.findViewById(R.id.moonAgeDays);
         refreshTime = (TextView) view.findViewById(R.id.refreshTime);
         super.onViewCreated(view, savedInstanceState);
+        if (astroCalculator != null) {
+            this.update(astroCalculator);
+        }
     }
 
     @Override
@@ -47,7 +54,8 @@ public class MoonFragment extends Fragment {
     }
 
     public void update(AstroCalculator astroCalculator) {
-        if(riseTime == null) {
+        this.astroCalculator = astroCalculator;
+        if (riseTime == null) {
             return;
         }
         AstroCalculator.MoonInfo moonInfo = astroCalculator.getMoonInfo();

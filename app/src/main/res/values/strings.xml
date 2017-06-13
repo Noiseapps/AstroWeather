@@ -42,4 +42,14 @@
     <string name="newPlaceAdded">Dodano nową lokalizację</string>
     <string name="selectedLocation">Wybrana lokalizacja</string>
     <string name="downloading_data">Pobieranie danych</string>
+    <string name="basic_data">Dane podstawowe:</string>
+    <string name="wind_direction_force">Kierunek i siła wiatru</string>
+    <string name="visibility">Widoczność</string>
+    <string name="humidity">Wilgotność</string>
+    <string name="description">Opis</string>
+    <string name="pressure">Ciśnienie</string>
+    <string name="temperature">Temperatura</string>
+    <string name="failed_to_read_current_data">Nie udało się pobrać aktualnych danych. Wyświetlone dane mogą być nieaktualne.</string>
+    <string name="weatherForecast">Prognoza pogody</string>
+    <string name="current_weather">Pogoda:</string>
 </resources>

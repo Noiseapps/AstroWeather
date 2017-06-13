@@ -10,7 +10,6 @@ import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -34,9 +33,14 @@ import java.io.InputStreamReader;
 import java.util.Locale;
 
 import io.realm.RealmResults;
+import pl.lodz.p.astroweather.fragments.MoonFragment;
+import pl.lodz.p.astroweather.fragments.SunFragment;
+import pl.lodz.p.astroweather.fragments.WeatherBasicDataFragment;
+import pl.lodz.p.astroweather.fragments.WeatherForecastFragment;
 import pl.lodz.p.astroweather.models.BaseResponse;
 import pl.lodz.p.astroweather.models.Centroid;
 import pl.lodz.p.astroweather.models.Place;
+import pl.lodz.p.astroweather.models.Query;
 import pl.lodz.p.astroweather.models.WeatherResponse;
 import pl.lodz.p.astroweather.models.WoeidResponse;
 import retrofit2.Call;
@@ -53,6 +57,9 @@ public class MainActivity extends AppCompatActivity {
     public static final String KEY_FREQUENCY = "Frequency";
     public static final String KEY_SUN_FRAGMENT = "SunFragment";
     public static final String KEY_MOON_FRAGMENT = "MoonFragment";
+    public static final String KEY_BASIC_DATA = "BasicDataFragment";
+    public static final String KEY_ADDITIONAL_DATA = "AdditionalDataFragment";
+    public static final String KEY_FORECAST = "ForecastFragment";
 
     private double userLongitude = -1001;
     private double userLatitude = -1001;
@@ -63,8 +70,12 @@ public class MainActivity extends AppCompatActivity {
     private AstroCalculator astroCalculator;
     private SunFragment sunFragment;
     private MoonFragment moonFragment;
+    private WeatherBasicDataFragment basicDataFragment;
+    //    private WeatherAdditionalDataFragment additionalDataFragment;
+    private WeatherForecastFragment forecastFragment;
     private FragmentsAdapter pagerAdapter;
     private TextView timeValue;
+    private TextView currentDataUnavailable;
     private Runnable timeTicker = new Runnable() {
         @Override
         public void run() {
@@ -106,12 +117,16 @@ public class MainActivity extends AppCompatActivity {
             updateFrequency = savedInstanceState.getInt(KEY_FREQUENCY, -1);
             moonFragment = (MoonFragment) getSupportFragmentManager().getFragment(savedInstanceState, KEY_MOON_FRAGMENT);
             sunFragment = (SunFragment) getSupportFragmentManager().getFragment(savedInstanceState, KEY_SUN_FRAGMENT);
+            basicDataFragment = (WeatherBasicDataFragment) getSupportFragmentManager().getFragment(savedInstanceState, KEY_BASIC_DATA);
+//            additionalDataFragment = (WeatherAdditionalDataFragment) getSupportFragmentManager().getFragment(savedInstanceState, KEY_ADDITIONAL_DATA);
+            forecastFragment = (WeatherForecastFragment) getSupportFragmentManager().getFragment(savedInstanceState, KEY_FORECAST);
         } else {
             userLatitude = -1001;
             userLongitude = -1001;
         }
 
         timeValue = (TextView) findViewById(R.id.timeValue);
+        currentDataUnavailable = (TextView) findViewById(R.id.currentDataUnavailable);
         locationName = (TextView) findViewById(R.id.locationName);
         userLocation = (TextView) findViewById(R.id.locationValue);
         userLocation.setText(R.string.not_set);
@@ -138,8 +153,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
+    protected void onResume() {
+        super.onResume();
         this.setUserLocation(userLatitude, userLongitude);
     }
 
@@ -156,6 +171,9 @@ public class MainActivity extends AppCompatActivity {
         outState.putInt(KEY_FREQUENCY, updateFrequency);
         getSupportFragmentManager().putFragment(outState, KEY_MOON_FRAGMENT, moonFragment);
         getSupportFragmentManager().putFragment(outState, KEY_SUN_FRAGMENT, sunFragment);
+        getSupportFragmentManager().putFragment(outState, KEY_BASIC_DATA, basicDataFragment);
+//        getSupportFragmentManager().putFragment(outState, KEY_ADDITIONAL_DATA, additionalDataFragment);
+        getSupportFragmentManager().putFragment(outState, KEY_FORECAST, forecastFragment);
         super.onSaveInstanceState(outState);
     }
 
@@ -212,6 +230,9 @@ public class MainActivity extends AppCompatActivity {
             case R.id.menuSwitchUnit:
                 setUnit();
                 break;
+            case R.id.menuRefresh:
+                refreshDataForSelectedPlace();
+                break;
             case R.id.menuUpdateFrequency:
                 updateFrequency();
                 break;
@@ -233,6 +254,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {
                         sharedPrefHelper.setUnit(units[which].substring(0, 1).toLowerCase());
                         dialog.dismiss();
+                        refreshDataForSelectedPlace();
                     }
                 }).
                 setCancelable(false).
@@ -405,14 +427,14 @@ public class MainActivity extends AppCompatActivity {
             public void onResponse(Call<BaseResponse<WeatherResponse>> call, Response<BaseResponse<WeatherResponse>> response) {
                 isReadingData = false;
                 dialog.dismiss();
-                updateWeather(response.body().getQuery().getResults());
+                updateWeather(response.body().getQuery());
             }
 
             @Override
             public void onFailure(Call<BaseResponse<WeatherResponse>> call, Throwable t) {
                 isReadingData = false;
                 dialog.dismiss();
-                final WeatherResponse weatherResponse = readFromFile();
+                final Query weatherResponse = readFromFile();
                 if (weatherResponse != null) {
                     updateWeatherFragments(weatherResponse, false);
                 }
@@ -420,16 +442,19 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void updateWeatherFragments(WeatherResponse weatherResponse, boolean isFreshData) {
-        Log.d("TAG", weatherResponse.toString());
+    private void updateWeatherFragments(Query<WeatherResponse> weatherResponse, boolean isFreshData) {
+        currentDataUnavailable.setVisibility(isFreshData ? View.GONE : View.VISIBLE);
+        basicDataFragment.update(weatherResponse);
+//        additionalDataFragment.update(weatherResponse);
+        forecastFragment.update(weatherResponse);
     }
 
-    private void updateWeather(WeatherResponse response) {
-        writeDataToFile(new Gson().toJson(response.getChannel()), selectedPlace.getId());
+    private void updateWeather(Query<WeatherResponse> response) {
+        writeDataToFile(new Gson().toJson(response), selectedPlace.getId());
         updateWeatherFragments(response, true);
     }
 
-    private WeatherResponse readFromFile() {
+    private Query readFromFile() {
         FileInputStream inputStream = null;
         try {
             final File file = new File(getFilesDir(), selectedPlace.getId());
@@ -441,7 +466,7 @@ public class MainActivity extends AppCompatActivity {
                 sb.append(line).append("\n");
             }
             reader.close();
-            return new Gson().fromJson(sb.toString(), WeatherResponse.class);
+            return new Gson().fromJson(sb.toString(), Query.class);
         } catch (Exception ex) {
             return null;
         } finally {
@@ -489,6 +514,15 @@ public class MainActivity extends AppCompatActivity {
         if (moonFragment == null) {
             moonFragment = new MoonFragment();
         }
+        if (basicDataFragment == null) {
+            basicDataFragment = new WeatherBasicDataFragment();
+        }
+//        if (additionalDataFragment == null) {
+//            additionalDataFragment = new WeatherAdditionalDataFragment();
+//        }
+        if (forecastFragment == null) {
+            forecastFragment = new WeatherForecastFragment();
+        }
 
         if (sunContainer != null && moonContainer != null) {
 //            widok tabletu
@@ -496,35 +530,35 @@ public class MainActivity extends AppCompatActivity {
                     beginTransaction().
                     replace(R.id.sunFragmentContainer, sunFragment).
                     replace(R.id.moonFragmentContainer, moonFragment).
-                    commitAllowingStateLoss();
+                    replace(R.id.basicDataContainer, basicDataFragment).
+                    replace(R.id.forecastContainer, forecastFragment).
+//                    replace(R.id.moonFragmentContainer, moonFragment).
+        commitAllowingStateLoss();
         } else {
 //             widok telefonu
-            pagerAdapter = new FragmentsAdapter(getSupportFragmentManager(), sunFragment, moonFragment);
+            final Fragment[] fragments = {sunFragment, moonFragment, basicDataFragment/*, additionalDataFragment*/, forecastFragment};
+            pagerAdapter = new FragmentsAdapter(getSupportFragmentManager(), fragments);
             viewPager.setAdapter(pagerAdapter);
+            viewPager.setOffscreenPageLimit(fragments.length);
         }
     }
 
     private static class FragmentsAdapter extends FragmentStatePagerAdapter {
-        private SunFragment sunFragment;
-        private MoonFragment moonFragment;
+        private Fragment[] fragments;
 
-        FragmentsAdapter(FragmentManager fm, SunFragment sunFragment, MoonFragment moonFragment) {
+        FragmentsAdapter(FragmentManager fm, Fragment[] fragments) {
             super(fm);
-            this.sunFragment = sunFragment;
-            this.moonFragment = moonFragment;
+            this.fragments = fragments;
         }
 
         @Override
         public Fragment getItem(int position) {
-            if (position == 0) {
-                return sunFragment;
-            }
-            return moonFragment;
+            return fragments[position];
         }
 
         @Override
         public int getCount() {
-            return 2;
+            return fragments.length;
         }
     }
 }

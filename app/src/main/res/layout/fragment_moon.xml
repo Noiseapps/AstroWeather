@@ -11,7 +11,7 @@
         android:elevation="4dp"
         android:orientation="vertical"
         android:padding="8dp"
-        tools:context="pl.lodz.p.astroweather.SunFragment">
+        tools:context="pl.lodz.p.astroweather.fragments.SunFragment">
 
         <LinearLayout
             android:layout_width="match_parent"

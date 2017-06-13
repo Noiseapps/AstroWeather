@@ -1,4 +1,4 @@
-package pl.lodz.p.astroweather;
+package pl.lodz.p.astroweather.fragments;
 
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -12,6 +12,9 @@ import com.astrocalculator.AstroCalculator;
 
 import java.util.Locale;
 
+import pl.lodz.p.astroweather.R;
+import pl.lodz.p.astroweather.Utils;
+
 public class SunFragment extends Fragment {
     private TextView riseTime;
     private TextView riseAzimuth;
@@ -20,6 +23,7 @@ public class SunFragment extends Fragment {
     private TextView civilTimeDusk;
     private TextView civilTimeDawn;
     private TextView refreshTime;
+    private AstroCalculator astroCalculator;
 
     @Nullable
     @Override
@@ -37,9 +41,13 @@ public class SunFragment extends Fragment {
         civilTimeDawn = (TextView) view.findViewById(R.id.dawnTime);
         refreshTime = (TextView) view.findViewById(R.id.refreshTime);
         super.onViewCreated(view, savedInstanceState);
+        if(astroCalculator != null) {
+            this.update(astroCalculator);
+        }
     }
 
     public void update(AstroCalculator astroCalculator) {
+        this.astroCalculator = astroCalculator;
         if (riseTime == null) {
             return;
         }

@@ -11,6 +11,21 @@
         android:padding="8dp">
 
         <TextView
+            android:id="@+id/currentDataUnavailable"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:text="@string/failed_to_read_current_data"
+            android:textColor="@color/colorWarning"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp">
+
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -19,6 +34,25 @@
         <TextView
             android:id="@+id/timeValue"
             android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/selectedLocation" />
+
+        <TextView
+            android:id="@+id/locationName"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="end" />
@@ -48,22 +82,52 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:baselineAligned="false"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         tools:context="pl.lodz.p.astroweather.MainActivity">
 
-        <FrameLayout
-            android:id="@+id/sunFragmentContainer"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
             android:layout_weight="1"
-            android:background="@android:color/white" />
+            android:orientation="horizontal">
 
-        <FrameLayout
-            android:id="@+id/moonFragmentContainer"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
+            <FrameLayout
+                android:id="@+id/sunFragmentContainer"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/white" />
+
+            <FrameLayout
+                android:id="@+id/moonFragmentContainer"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/white" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
             android:layout_weight="1"
-            android:background="@android:color/white" />
+            android:orientation="horizontal">
+
+            <FrameLayout
+                android:id="@+id/basicDataContainer"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/white" />
+
+            <FrameLayout
+                android:id="@+id/forecastContainer"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/white" />
+
+        </LinearLayout>
 
     </LinearLayout>
 </LinearLayout>
