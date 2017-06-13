@@ -41,4 +41,5 @@
     <string name="requestFailed">Błąd pobierania danych</string>
     <string name="newPlaceAdded">Dodano nową lokalizację</string>
     <string name="selectedLocation">Wybrana lokalizacja</string>
+    <string name="downloading_data">Pobieranie danych</string>
 </resources>

@@ -3,6 +3,7 @@ package pl.lodz.p.astroweather;
 import android.content.Context;
 
 import pl.lodz.p.astroweather.models.BaseResponse;
+import pl.lodz.p.astroweather.models.WeatherResponse;
 import pl.lodz.p.astroweather.models.WoeidResponse;
 import retrofit2.Callback;
 
@@ -20,9 +21,9 @@ public class RetrofitHelper {
         api.getWoeid(yqlQuery).enqueue(callback);
     }
 
-    public void readWeatherData(Context context, int woeid, Callback<Void> callback) {
+    public void readWeatherData(Context context, String woeid, Callback<BaseResponse<WeatherResponse>> callback) {
         final String unit = new SharedPrefHelper(context).getUnit();
-        final String yqlQuery = "select * from geo.places(1) where woeid = " + woeid + "and u=\"" + unit + "\"";
+        final String yqlQuery = "select * from weather.forecast where woeid = " + woeid + " and u=\"" + unit + "\"";
         api.getWeather(yqlQuery).enqueue(callback);
     }
 }

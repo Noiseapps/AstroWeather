@@ -1,5 +1,6 @@
 package pl.lodz.p.astroweather;
 
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -9,6 +10,7 @@ import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -21,13 +23,21 @@ import android.widget.Toast;
 
 import com.astrocalculator.AstroCalculator;
 import com.astrocalculator.AstroDateTime;
+import com.google.gson.Gson;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Locale;
 
 import io.realm.RealmResults;
 import pl.lodz.p.astroweather.models.BaseResponse;
 import pl.lodz.p.astroweather.models.Centroid;
 import pl.lodz.p.astroweather.models.Place;
+import pl.lodz.p.astroweather.models.WeatherResponse;
 import pl.lodz.p.astroweather.models.WoeidResponse;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -70,6 +80,10 @@ public class MainActivity extends AppCompatActivity {
     };
     private TextView userLocation;
     private TextView locationName;
+    private FrameLayout sunContainer;
+    private FrameLayout moonContainer;
+    private ViewPager viewPager;
+    private boolean isReadingData;
     private Runnable dataRefreshTicker = new Runnable() {
         @Override
         public void run() {
@@ -79,9 +93,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
-    private FrameLayout sunContainer;
-    private FrameLayout moonContainer;
-    private ViewPager viewPager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -180,6 +191,7 @@ public class MainActivity extends AppCompatActivity {
         }
         sunFragment.update(astroCalculator);
         moonFragment.update(astroCalculator);
+        refreshDataForSelectedPlace();
     }
 
     @Override
@@ -197,6 +209,9 @@ public class MainActivity extends AppCompatActivity {
             case R.id.menuSetLocation:
                 setLocation();
                 break;
+            case R.id.menuSwitchUnit:
+                setUnit();
+                break;
             case R.id.menuUpdateFrequency:
                 updateFrequency();
                 break;
@@ -204,15 +219,39 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    private void setLocation() {
-        final RealmResults<Place> placeList = Place.getAll();
-        final String[] places = new String[placeList.size()];
-        for (int i = 0; i < placeList.size(); i++) {
-            places[i] = placeList.get(i).toString();
+    private void setUnit() {
+        final SharedPrefHelper sharedPrefHelper = new SharedPrefHelper(MainActivity.this);
+        final String[] units = {"Celsius", "Fahrenheit"};
+        int selectedItem = 0;
+        if (sharedPrefHelper.getUnit().equalsIgnoreCase("f")) {
+            selectedItem = 1;
         }
         new AlertDialog.Builder(this).
                 setTitle(R.string.setUserLocation).
-                setItems(places, new DialogInterface.OnClickListener() {
+                setSingleChoiceItems(units, selectedItem, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        sharedPrefHelper.setUnit(units[which].substring(0, 1).toLowerCase());
+                        dialog.dismiss();
+                    }
+                }).
+                setCancelable(false).
+                setNegativeButton(R.string.cancel, null).show();
+    }
+
+    private void setLocation() {
+        final RealmResults<Place> placeList = Place.getAll();
+        final String[] places = new String[placeList.size()];
+        int selectedItem = 0;
+        for (int i = 0; i < placeList.size(); i++) {
+            places[i] = placeList.get(i).toString();
+            if (selectedPlace != null && placeList.get(i).getId().equalsIgnoreCase(selectedPlace.getId())) {
+                selectedItem = i;
+            }
+        }
+        new AlertDialog.Builder(this).
+                setTitle(R.string.setUserLocation).
+                setSingleChoiceItems(places, selectedItem, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         selectPlace(placeList.get(which));
@@ -350,6 +389,97 @@ public class MainActivity extends AppCompatActivity {
         });
 
         alert.show();
+    }
+
+    private void refreshDataForSelectedPlace() {
+        if (isReadingData) return;
+        isReadingData = true;
+        final ProgressDialog dialog = new ProgressDialog(this);
+        dialog.setMessage(getString(R.string.downloading_data));
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.setCancelable(false);
+        dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        dialog.show();
+        RetrofitHelper.INSTANCE.readWeatherData(this, selectedPlace.getWoeid(), new Callback<BaseResponse<WeatherResponse>>() {
+            @Override
+            public void onResponse(Call<BaseResponse<WeatherResponse>> call, Response<BaseResponse<WeatherResponse>> response) {
+                isReadingData = false;
+                dialog.dismiss();
+                updateWeather(response.body().getQuery().getResults());
+            }
+
+            @Override
+            public void onFailure(Call<BaseResponse<WeatherResponse>> call, Throwable t) {
+                isReadingData = false;
+                dialog.dismiss();
+                final WeatherResponse weatherResponse = readFromFile();
+                if (weatherResponse != null) {
+                    updateWeatherFragments(weatherResponse, false);
+                }
+            }
+        });
+    }
+
+    private void updateWeatherFragments(WeatherResponse weatherResponse, boolean isFreshData) {
+        Log.d("TAG", weatherResponse.toString());
+    }
+
+    private void updateWeather(WeatherResponse response) {
+        writeDataToFile(new Gson().toJson(response.getChannel()), selectedPlace.getId());
+        updateWeatherFragments(response, true);
+    }
+
+    private WeatherResponse readFromFile() {
+        FileInputStream inputStream = null;
+        try {
+            final File file = new File(getFilesDir(), selectedPlace.getId());
+            inputStream = new FileInputStream(file);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append("\n");
+            }
+            reader.close();
+            return new Gson().fromJson(sb.toString(), WeatherResponse.class);
+        } catch (Exception ex) {
+            return null;
+        } finally {
+            try {
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void writeDataToFile(String data, String fileName) {
+        FileOutputStream fop = null;
+        File file;
+        try {
+            file = new File(getFilesDir(), fileName);
+            fop = new FileOutputStream(file);
+
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            byte[] contentInBytes = data.getBytes();
+            fop.write(contentInBytes);
+            fop.flush();
+            fop.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (fop != null) {
+                    fop.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void configureFragments() {
