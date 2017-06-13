@@ -8,8 +8,23 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/menuAddLocation"
+        android:title="@string/menu_add_location"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menuUpdateFrequency"
         android:title="@string/update_frequency"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menuRefresh"
+        android:title="@string/refresh"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menuSwitchUnit"
+        android:title="@string/selectUnit"
         app:showAsAction="never" />
 
 </menu>

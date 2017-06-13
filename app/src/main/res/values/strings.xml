@@ -33,4 +33,12 @@
     <string name="field_required">To pole jest wymagane</string>
     <string name="refresh_time">Aktualizacja:</string>
     <string name="field_invalid">Wpisana wartość jest niepoprawna</string>
+    <string name="refresh">Odśwież</string>
+    <string name="selectUnit">Wybierz jednostkę</string>
+    <string name="search">Wyszukaj</string>
+    <string name="menu_add_location">Dodaj lokalizację</string>
+    <string name="failedToFindLocation">Podana lokalizacja nie jest poprawna</string>
+    <string name="requestFailed">Błąd pobierania danych</string>
+    <string name="newPlaceAdded">Dodano nową lokalizację</string>
+    <string name="selectedLocation">Wybrana lokalizacja</string>
 </resources>

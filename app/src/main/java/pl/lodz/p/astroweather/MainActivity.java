@@ -9,26 +9,36 @@ import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.text.InputType;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.astrocalculator.AstroCalculator;
 import com.astrocalculator.AstroDateTime;
 
 import java.util.Locale;
 
+import io.realm.RealmResults;
+import pl.lodz.p.astroweather.models.BaseResponse;
+import pl.lodz.p.astroweather.models.Centroid;
+import pl.lodz.p.astroweather.models.Place;
+import pl.lodz.p.astroweather.models.WoeidResponse;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class MainActivity extends AppCompatActivity {
 
     public static final int SECOND_DELAY = 1000;
     public static final int MINUTE_DELAY = 60 * SECOND_DELAY;
     public static final String KEY_LONGITUDE = "Longitude";
+    public static final String KEY_PLACE = "Place";
     public static final String KEY_LATITUDE = "Latitude";
     public static final String KEY_FREQUENCY = "Frequency";
     public static final String KEY_SUN_FRAGMENT = "SunFragment";
@@ -38,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
     private double userLatitude = -1001;
     private Handler tickerHandler;
     private int updateFrequency = -1;
+    private Place selectedPlace;
     private AstroDateTime astroDateTime;
     private AstroCalculator astroCalculator;
     private SunFragment sunFragment;
@@ -48,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             astroDateTime = Utils.getCurrentAstroDateTime();
-            if(astroCalculator != null) {
+            if (astroCalculator != null) {
                 astroCalculator.setDateTime(astroDateTime);
             }
             MainActivity.this.timeValue.setText(Utils.formatAstroDateToString(astroDateTime));
@@ -57,6 +68,8 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+    private TextView userLocation;
+    private TextView locationName;
     private Runnable dataRefreshTicker = new Runnable() {
         @Override
         public void run() {
@@ -66,8 +79,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
-    private TextView userLocation;
-
     private FrameLayout sunContainer;
     private FrameLayout moonContainer;
     private ViewPager viewPager;
@@ -77,18 +88,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if(savedInstanceState != null) {
+        if (savedInstanceState != null) {
             userLatitude = savedInstanceState.getDouble(KEY_LATITUDE, -1001);
+            selectedPlace = savedInstanceState.getParcelable(KEY_PLACE);
             userLongitude = savedInstanceState.getDouble(KEY_LONGITUDE, -1001);
             updateFrequency = savedInstanceState.getInt(KEY_FREQUENCY, -1);
             moonFragment = (MoonFragment) getSupportFragmentManager().getFragment(savedInstanceState, KEY_MOON_FRAGMENT);
-            sunFragment =  (SunFragment) getSupportFragmentManager().getFragment(savedInstanceState, KEY_SUN_FRAGMENT);
+            sunFragment = (SunFragment) getSupportFragmentManager().getFragment(savedInstanceState, KEY_SUN_FRAGMENT);
         } else {
             userLatitude = -1001;
             userLongitude = -1001;
         }
 
         timeValue = (TextView) findViewById(R.id.timeValue);
+        locationName = (TextView) findViewById(R.id.locationName);
         userLocation = (TextView) findViewById(R.id.locationValue);
         userLocation.setText(R.string.not_set);
 
@@ -101,6 +114,16 @@ public class MainActivity extends AppCompatActivity {
 
         tickerHandler = new Handler();
         tickerHandler.postDelayed(timeTicker, SECOND_DELAY);
+
+        updateFrequency = new SharedPrefHelper(this).getRefreshTime();
+        if (selectedPlace != null) {
+            selectPlace(selectedPlace);
+        } else {
+            final RealmResults<Place> places = Place.getAll();
+            if (places.size() > 0) {
+                selectPlace(places.first());
+            }
+        }
     }
 
     @Override
@@ -129,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
         tickerHandler.removeCallbacks(dataRefreshTicker);
         userLatitude = latitude;
         userLongitude = longitude;
-        if(latitude >= 0 && latitude <= 90 && Math.abs(longitude) <= 180) {
+        if (latitude >= 0 && latitude <= 90 && Math.abs(longitude) <= 180) {
             astroCalculator = new AstroCalculator(astroDateTime, new AstroCalculator.Location(latitude, longitude));
             userLocation.setText(String.format(Locale.getDefault(), "Szer.: %f, \nDł.: %f", latitude, longitude));
         }
@@ -144,13 +167,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void updateFragments() {
-        if(userLatitude < 0 || userLongitude < -180) {
+        if (userLatitude < 0 || userLongitude < -180) {
             tickerHandler.removeCallbacks(dataRefreshTicker);
-            setLocation();
+            addLocation();
             return;
         }
 
-        if(updateFrequency < 0) {
+        if (updateFrequency < 0) {
             tickerHandler.removeCallbacks(dataRefreshTicker);
             updateFrequency();
             return;
@@ -168,6 +191,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.menuAddLocation:
+                addLocation();
+                break;
             case R.id.menuSetLocation:
                 setLocation();
                 break;
@@ -179,11 +205,39 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setLocation() {
-        View dialogBody = LayoutInflater.from(this).inflate(R.layout.dialog_coordinates, null, false);
-        final EditText latitudeInput = (EditText) dialogBody.findViewById(R.id.latitude);
-        final EditText longitudeInput = (EditText) dialogBody.findViewById(R.id.longitude);
+        final RealmResults<Place> placeList = Place.getAll();
+        final String[] places = new String[placeList.size()];
+        for (int i = 0; i < placeList.size(); i++) {
+            places[i] = placeList.get(i).toString();
+        }
+        new AlertDialog.Builder(this).
+                setTitle(R.string.setUserLocation).
+                setItems(places, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        selectPlace(placeList.get(which));
+                        dialog.dismiss();
+                    }
+                }).
+                setCancelable(false).
+                setNegativeButton(R.string.cancel, null).show();
+    }
 
-        longitudeInput.setInputType(InputType.TYPE_NUMBER_FLAG_SIGNED | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_CLASS_NUMBER);
+    private void selectPlace(Place place) {
+        selectedPlace = place;
+        final Centroid centroid = place.getCentroid();
+        setUserLocation(centroid.getLatitude(), centroid.getLongitude());
+        locationName.setText(place.toString());
+    }
+
+    private void addLocation() {
+        View dialogBody = LayoutInflater.from(this).inflate(R.layout.dialog_coordinates, null, false);
+        final EditText latitudeInput = (EditText) dialogBody.findViewById(R.id.placeId);
+        final ProgressBar progressBar = (ProgressBar) dialogBody.findViewById(R.id.progressBar);
+
+        progressBar.setVisibility(View.GONE);
+        final TextView errorView = (TextView) dialogBody.findViewById(R.id.errorLabel);
+        errorView.setVisibility(View.GONE);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this).
                 setTitle(R.string.setUserLocation).
@@ -193,6 +247,7 @@ public class MainActivity extends AppCompatActivity {
                 setView(dialogBody);
         final AlertDialog alert = builder.create();
 
+
 //        ustawiamy on show, żeby alert nie zamykał się zaraz po kliknięciu na button
         alert.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
@@ -200,46 +255,40 @@ public class MainActivity extends AppCompatActivity {
                 alert.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        boolean isValid = true;
-
-                        double longitude = 0;
-                        double latitude = 0;
-
-                        if(!longitudeInput.getText().toString().isEmpty()) {
-                            try {
-                                longitude = Double.parseDouble(longitudeInput.getText().toString());
-                                if(Math.abs(longitude) > 180) {
-                                    longitudeInput.setError(getString(R.string.invalidLongitudeValue));
-                                    isValid = false;
+                        String query = latitudeInput.getText().toString();
+                        if (!query.isEmpty()) {
+                            progressBar.setVisibility(View.VISIBLE);
+                            RetrofitHelper.INSTANCE.getWoeid(query, new Callback<BaseResponse<WoeidResponse>>() {
+                                @Override
+                                public void onResponse(Call<BaseResponse<WoeidResponse>> call, Response<BaseResponse<WoeidResponse>> response) {
+                                    progressBar.setVisibility(View.GONE);
+                                    final BaseResponse<WoeidResponse> body = response.body();
+                                    if (body != null) {
+                                        final Place place = body.getQuery().getResults().getPlace();
+                                        if (place.getName() == null) {
+                                            errorView.setVisibility(View.VISIBLE);
+                                            errorView.setText(getString(R.string.failedToFindLocation));
+                                        } else {
+                                            place.save();
+                                            selectPlace(place);
+                                            alert.dismiss();
+                                            Toast.makeText(MainActivity.this, R.string.newPlaceAdded, Toast.LENGTH_LONG).show();
+                                        }
+                                    } else {
+                                        errorView.setVisibility(View.VISIBLE);
+                                        errorView.setText(getString(R.string.requestFailed));
+                                    }
                                 }
-                            } catch (Exception e) {
-                                longitudeInput.setError(getString(R.string.field_invalid));
-                                isValid = false;
-                            }
-                        } else {
-                            longitudeInput.setError(getString(R.string.field_required));
-                            isValid = false;
-                        }
 
-                        if(!latitudeInput.getText().toString().isEmpty()) {
-                            try {
-                                latitude = Double.parseDouble(latitudeInput.getText().toString());
-                                if(latitude < 0 || latitude > 90) {
-                                    latitudeInput.setError(getString(R.string.invalidLatitudeValue));
-                                    isValid = false;
+                                @Override
+                                public void onFailure(Call<BaseResponse<WoeidResponse>> call, Throwable t) {
+                                    progressBar.setVisibility(View.GONE);
+                                    errorView.setVisibility(View.VISIBLE);
+                                    errorView.setText(getString(R.string.requestFailed));
                                 }
-                            } catch (Exception e) {
-                                latitudeInput.setError(getString(R.string.field_invalid));
-                                isValid = false;
-                            }
+                            });
                         } else {
                             latitudeInput.setError(getString(R.string.field_required));
-                            isValid = false;
-                        }
-
-                        if(isValid) {
-                            setUserLocation(latitude, longitude);
-                            alert.dismiss();
                         }
                     }
                 });
@@ -277,9 +326,9 @@ public class MainActivity extends AppCompatActivity {
                 alert.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        if(!frequencyInput.getText().toString().isEmpty()) {
+                        if (!frequencyInput.getText().toString().isEmpty()) {
                             int frequencyMinutes = Integer.parseInt(frequencyInput.getText().toString());
-                            if(frequencyMinutes > 0) {
+                            if (frequencyMinutes > 0) {
                                 setUpdateFrequency(frequencyMinutes);
                                 alert.dismiss();
                             } else {
@@ -304,10 +353,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void configureFragments() {
-        if(sunFragment == null ) {
+        if (sunFragment == null) {
             sunFragment = new SunFragment();
         }
-        if(moonFragment == null) {
+        if (moonFragment == null) {
             moonFragment = new MoonFragment();
         }
 
