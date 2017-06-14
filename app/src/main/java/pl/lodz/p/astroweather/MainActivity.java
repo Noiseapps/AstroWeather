@@ -97,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
     private FrameLayout moonContainer;
     private ViewPager viewPager;
     private boolean isReadingData;
+    private AlertDialog frequencyAlert;
     private Runnable dataRefreshTicker = new Runnable() {
         @Override
         public void run() {
@@ -106,7 +107,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
-    private AlertDialog frequencyAlert;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -334,10 +334,16 @@ public class MainActivity extends AppCompatActivity {
                                             errorView.setText(getString(R.string.failedToFindLocation));
                                         } else {
                                             final Place place = woeidResponse.getPlace();
-                                            place.save();
-                                            selectPlace(place);
-                                            alert.dismiss();
-                                            Toast.makeText(MainActivity.this, R.string.newPlaceAdded, Toast.LENGTH_LONG).show();
+                                            final Place placeWithWoeid = Place.getPlaceWithWoeid(woeidResponse.getPlace().getWoeid());
+                                            if (placeWithWoeid == null) {
+                                                place.save();
+                                                selectPlace(place);
+                                                alert.dismiss();
+                                                Toast.makeText(MainActivity.this, R.string.newPlaceAdded, Toast.LENGTH_LONG).show();
+                                            } else {
+                                                errorView.setVisibility(View.VISIBLE);
+                                                errorView.setText(R.string.location_already_added);
+                                            }
                                         }
                                     } else {
                                         errorView.setVisibility(View.VISIBLE);
@@ -372,7 +378,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateFrequency() {
-        if(frequencyAlert != null) return;
+        if (frequencyAlert != null) return;
         View dialogBody = LayoutInflater.from(this).inflate(R.layout.dialog_update_frequency, null, false);
         final EditText frequencyInput = (EditText) dialogBody.findViewById(R.id.frequencyUpdate);
         if (updateFrequency > 0) {

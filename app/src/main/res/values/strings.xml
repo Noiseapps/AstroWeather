@@ -53,4 +53,5 @@
     <string name="weatherForecast">Prognoza pogody</string>
     <string name="current_weather">Pogoda:</string>
     <string name="no_cached_data">Brak dostępnych danych pogodowych. Sprawdź połączenie z internetem i spróbuj ponownie</string>
+    <string name="location_already_added">Lokalizacja jest już na liście</string>
 </resources>

@@ -47,6 +47,11 @@ public class Place extends RealmObject implements Parcelable {
         return query.findAll();
     }
 
+    public static Place getPlaceWithWoeid(String woeid) {
+        final RealmResults<Place> query = Realm.getDefaultInstance().where(Place.class).equalTo("woeid", woeid).findAll();
+        return query.first(null);
+    }
+
     @Override
     public String toString() {
         return name + ", " + country;
