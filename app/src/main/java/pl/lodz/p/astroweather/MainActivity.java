@@ -106,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+    private AlertDialog frequencyAlert;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -327,11 +328,12 @@ public class MainActivity extends AppCompatActivity {
                                     progressBar.setVisibility(View.GONE);
                                     final BaseResponse<WoeidResponse> body = response.body();
                                     if (body != null) {
-                                        final Place place = body.getQuery().getResults().getPlace();
-                                        if (place.getName() == null) {
+                                        final WoeidResponse woeidResponse = body.getQuery().getResults();
+                                        if (woeidResponse == null || woeidResponse.getPlace().getName() == null) {
                                             errorView.setVisibility(View.VISIBLE);
                                             errorView.setText(getString(R.string.failedToFindLocation));
                                         } else {
+                                            final Place place = woeidResponse.getPlace();
                                             place.save();
                                             selectPlace(place);
                                             alert.dismiss();
@@ -370,6 +372,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateFrequency() {
+        if(frequencyAlert != null) return;
         View dialogBody = LayoutInflater.from(this).inflate(R.layout.dialog_update_frequency, null, false);
         final EditText frequencyInput = (EditText) dialogBody.findViewById(R.id.frequencyUpdate);
         if (updateFrequency > 0) {
@@ -383,19 +386,21 @@ public class MainActivity extends AppCompatActivity {
                 setPositiveButton(R.string.save, null).
                 setNegativeButton(R.string.cancel, null).
                 setView(dialogBody);
-        final AlertDialog alert = builder.create();
+        frequencyAlert = builder.create();
+        frequencyAlert.setCanceledOnTouchOutside(false);
 
 //        ustawiamy on show, żeby alert nie zamykał się zaraz po kliknięciu na button
-        alert.setOnShowListener(new DialogInterface.OnShowListener() {
+        frequencyAlert.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
             public void onShow(DialogInterface dialogInterface) {
-                alert.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+                frequencyAlert.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
                         if (!frequencyInput.getText().toString().isEmpty()) {
                             int frequencyMinutes = Integer.parseInt(frequencyInput.getText().toString());
                             if (frequencyMinutes > 0) {
-                                alert.dismiss();
+                                frequencyAlert.dismiss();
+                                frequencyAlert = null;
                                 new SharedPrefHelper(MainActivity.this).setRefreshTime(frequencyMinutes);
                                 setUpdateFrequency(frequencyMinutes);
                             } else {
@@ -407,16 +412,17 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-                alert.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener(new View.OnClickListener() {
+                frequencyAlert.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        alert.dismiss();
+                        frequencyAlert = null;
+                        frequencyAlert.dismiss();
                     }
                 });
             }
         });
 
-        alert.show();
+        frequencyAlert.show();
     }
 
     private void refreshDataForSelectedPlace() {
